@@ -3,6 +3,8 @@ import 'dart:io' as io;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ge_camera_app/services/bluetooth_controller.dart';
+import 'package:get/get.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -33,16 +35,21 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
 
   @override
   Widget build(BuildContext context) {
-    return DetectorView(
-      title: 'Object Detector',
-      customPaint: _customPaint,
-      text: _text,
-      onImage: _processImage,
-      initialCameraLensDirection: _cameraLensDirection,
-      onCameraLensDirectionChanged: (value) => _cameraLensDirection = value,
-      onCameraFeedReady: () => _initializeDetector(_mode),
-      onDetectorViewModeChanged: _onScreenModeChanged,
-    );
+    return GetBuilder<BluetoothController>(
+        init: BluetoothController(),
+        builder: (controller) {
+          return DetectorView(
+            title: 'Object Detector',
+            customPaint: _customPaint,
+            text: _text,
+            onImage: _processImage,
+            initialCameraLensDirection: _cameraLensDirection,
+            onCameraLensDirectionChanged: (value) =>
+                _cameraLensDirection = value,
+            onCameraFeedReady: () => _initializeDetector(_mode),
+            onDetectorViewModeChanged: _onScreenModeChanged,
+          );
+        });
   }
 
   void _onScreenModeChanged(DetectorViewMode mode) {
