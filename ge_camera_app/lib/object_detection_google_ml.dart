@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ge_camera_app/services/bluetooth_controller.dart';
 import 'package:get/get.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
@@ -25,12 +26,24 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
   CustomPaint? _customPaint;
   String? _text;
   var _cameraLensDirection = CameraLensDirection.back;
-
+  bool itemDetected = false;
+  final bluetoothController = Get.put(BluetoothController(), permanent: true);
   @override
   void dispose() {
     _canProcess = false;
     _objectDetector?.close();
     super.dispose();
+  }
+
+  void showToast({required String message}) {
+    Fluttertoast.showToast(
+        msg: message,
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16.0);
   }
 
   @override
@@ -115,7 +128,24 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
       _text = '';
     });
     final objects = await _objectDetector!.processImage(inputImage);
-    print('Objects found: ${objects.length}\n\n');
+    print('odgm 2 Objects found: ${objects.length}\n\n');
+    for (final object in objects) {
+      object.labels.forEach((labelQuery) {
+        if (labelQuery.text.contains('Tin can') && itemDetected == false) {
+          bluetoothController.sendMessage(message: "0,1,1");
+          showToast(message: 'Can Detected');
+          itemDetected = true;
+        } else if ((labelQuery.text.contains('Bottle') ||
+                _text!.contains('Water bottle')) &&
+            itemDetected == false) {
+          bluetoothController.sendMessage(message: "0,1,1");
+          showToast(message: 'Plastic Detected');
+          itemDetected = true;
+        } else {
+          itemDetected = false;
+        }
+      });
+    }
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
       final painter = ObjectDetectorPainter(
@@ -126,12 +156,27 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
       );
       _customPaint = CustomPaint(painter: painter);
     } else {
-      String text = 'Objects found: ${objects.length}\n\n';
+      String text = 'odgm 1 Objects found: ${objects.length}\n\n';
       for (final object in objects) {
+        print('\n\n\n\n\n\neach object labels : ${object.labels}\n\n\n\n\n\n');
         text +=
             'Object:  trackingId: ${object.trackingId} - ${object.labels.map((e) => e.text)}\n\n';
       }
       _text = text;
+      if (_text != null) {
+        print('\n\n\n\n\n $_text \n\n\n\n\n');
+        if (_text!.contains('Tin can') && itemDetected == false) {
+          showToast(message: 'Can Detected');
+          itemDetected = true;
+        } else if ((_text!.contains('Bottle') ||
+                _text!.contains('Water bottle')) &&
+            itemDetected == false) {
+          showToast(message: 'Plastic Detected');
+          itemDetected = true;
+        } else {
+          itemDetected = false;
+        }
+      }
       // TODO: set _customPaint to draw boundingRect on top of image
       _customPaint = null;
     }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:get/get.dart';
@@ -50,35 +51,34 @@ class BluetoothController extends GetxController {
         .getBondedDevices()
         .then((bondedDevices) async {
       for (int i = 0; i < bondedDevices.length; i++) {
-        if (bondedDevices[i].address == macAddress_arduino_screen) {
+        if (bondedDevices[i].address == macAddress_arduino_camera) {
           arduniDevice = bondedDevices[i];
           break;
         }
       }
       if (!arduniDevice.isConnected) {
-        await connectToScreenBluetoothModule();
+        await connectToCameraBluetoothModule();
       } else {
         Timer(
           Duration(seconds: 5),
           () async {
-            await connectToScreenBluetoothModule();
+            await connectToCameraBluetoothModule();
           },
         );
       }
     });
   }
 
-  Future<void> connectToScreenBluetoothModule() async {
+  Future<void> connectToCameraBluetoothModule() async {
     try {
       /**
        * to connect with bluetooth module .
        */
 
-      await BluetoothConnection.toAddress(macAddress_arduino_screen)
+      await BluetoothConnection.toAddress(macAddress_arduino_camera)
           .then((value) async {
         connection = value;
         print('''\n\n\n Connected ✅ \n\n\n''');
-
         await startListeningToBluetoothStream();
         print('''\n\n\n Listening ✅ \n\n\n''');
       });
@@ -86,7 +86,7 @@ class BluetoothController extends GetxController {
       Timer(
         Duration(seconds: 2),
         () async {
-          await connectToScreenBluetoothModule();
+          await connectToCameraBluetoothModule();
         },
       );
       print('''\n\n\n Reconnecting with HC-05 bluetooth \n\n\n''');
@@ -103,7 +103,7 @@ class BluetoothController extends GetxController {
         (Uint8List data) {},
         onDone: () {
           // this is to make Camera reconnect again of the connection lost .
-          connectToScreenBluetoothModule();
+          connectToCameraBluetoothModule();
         },
       );
     } catch (e) {
@@ -117,16 +117,15 @@ class BluetoothController extends GetxController {
     }
   }
 
-  // void sendMessage({required String message}) async {
-  //   message = message + "\n";
-  //   var data = ascii.encode(message);
-  //   try {
-  //     connection.output.add(data); // Sending data
-  //   } catch (e) {
-  //     ConsoleMessage.printError(
-  //         'error while sending message to camera', e.toString());
-  //   }
-  // }
+  void sendMessage({required String message}) async {
+    message = message + "\n";
+    var data = ascii.encode(message);
+    try {
+      connection.output.add(data); // Sending data
+    } catch (e) {
+      print('error while sending message to bluetooth module !! $e');
+    }
+  }
 
   Future<void> closeConnection() async {
     await connection.close();
