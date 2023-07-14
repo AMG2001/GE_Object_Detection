@@ -144,16 +144,17 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
       object.labels.forEach((labelQuery) {
         if (labelQuery.text.contains('Tin can')) {
           if (timerController.sendSignal == true) {
-            bluetoothController.sendMessage(message: "0,1,1");
+            bluetoothController.sendMessage(message: '"1,0,1,"');
             showToast(message: 'cans signal sent');
             timerController.stunSendingSignal();
           }
         } else if ((labelQuery.text.contains('Bottle') ||
             _text!.contains('Water bottle'))) {
-          detected_recycling_object = object;
-          bluetoothController.sendMessage(message: "0,1,1");
-          showToast(message: 'Plastic Detected');
-          itemDetected = true;
+          if (timerController.sendSignal == true) {
+            bluetoothController.sendMessage(message: '"1,1,0,"');
+            showToast(message: 'Plastic Detected');
+            timerController.stunSendingSignal();
+          }
         }
       });
     }
