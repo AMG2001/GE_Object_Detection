@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' as io;
 
 import 'package:camera/camera.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ge_camera_app/services/bluetooth_controller.dart';
+import 'package:ge_camera_app/services/timer_controller.dart';
 import 'package:get/get.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:path/path.dart';
@@ -25,9 +27,14 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
   bool _isBusy = false;
   CustomPaint? _customPaint;
   String? _text;
-  var _cameraLensDirection = CameraLensDirection.back;
+
+  late final DetectedObject detected_recycling_object;
   bool itemDetected = false;
+
+  var _cameraLensDirection = CameraLensDirection.back;
+
   final bluetoothController = Get.put(BluetoothController(), permanent: true);
+  final timerController = Get.put(TimerController(), permanent: true);
   @override
   void dispose() {
     _canProcess = false;
@@ -50,7 +57,7 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
   Widget build(BuildContext context) {
     return GetBuilder<BluetoothController>(
         init: BluetoothController(),
-        builder: (controller) {
+        builder: (bl_controller) {
           return DetectorView(
             title: 'Object Detector',
             customPaint: _customPaint,
@@ -120,6 +127,7 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
   }
 
   Future<void> _processImage(InputImage inputImage) async {
+    print('\n\n\n\n processing image start \n\n\n\n\n');
     if (_objectDetector == null) return;
     if (!_canProcess) return;
     if (_isBusy) return;
@@ -128,24 +136,28 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
       _text = '';
     });
     final objects = await _objectDetector!.processImage(inputImage);
-    print('odgm 2 Objects found: ${objects.length}\n\n');
+
     for (final object in objects) {
+      /**
+       * Looping in each object labels .
+       */
       object.labels.forEach((labelQuery) {
-        if (labelQuery.text.contains('Tin can') && itemDetected == false) {
-          bluetoothController.sendMessage(message: "0,1,1");
-          showToast(message: 'Can Detected');
-          itemDetected = true;
+        if (labelQuery.text.contains('Tin can')) {
+          if (timerController.sendSignal == true) {
+            bluetoothController.sendMessage(message: "0,1,1");
+            showToast(message: 'cans signal sent');
+            timerController.stunSendingSignal();
+          }
         } else if ((labelQuery.text.contains('Bottle') ||
-                _text!.contains('Water bottle')) &&
-            itemDetected == false) {
+            _text!.contains('Water bottle'))) {
+          detected_recycling_object = object;
           bluetoothController.sendMessage(message: "0,1,1");
           showToast(message: 'Plastic Detected');
           itemDetected = true;
-        } else {
-          itemDetected = false;
         }
       });
     }
+
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
       final painter = ObjectDetectorPainter(
@@ -163,20 +175,6 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
             'Object:  trackingId: ${object.trackingId} - ${object.labels.map((e) => e.text)}\n\n';
       }
       _text = text;
-      if (_text != null) {
-        print('\n\n\n\n\n $_text \n\n\n\n\n');
-        if (_text!.contains('Tin can') && itemDetected == false) {
-          showToast(message: 'Can Detected');
-          itemDetected = true;
-        } else if ((_text!.contains('Bottle') ||
-                _text!.contains('Water bottle')) &&
-            itemDetected == false) {
-          showToast(message: 'Plastic Detected');
-          itemDetected = true;
-        } else {
-          itemDetected = false;
-        }
-      }
       // TODO: set _customPaint to draw boundingRect on top of image
       _customPaint = null;
     }
