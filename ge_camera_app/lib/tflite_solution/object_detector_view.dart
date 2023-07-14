@@ -7,8 +7,8 @@ import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'google_solution.dart';
-import 'object_detector_painter.dart';
+import '../google_solution.dart';
+import '../object_detector_painter.dart';
 
 class ObjectDetectorView extends StatefulWidget {
   @override
